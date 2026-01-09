@@ -5,12 +5,23 @@ const hpBar = document.getElementById("hpBar");
 const hpLabel = document.getElementById("hpLabel");
 const dashBar = document.getElementById("dashBar");
 const dashLabel = document.getElementById("dashLabel");
+const evolutionBar = document.getElementById("evolutionBar");
+const evolutionLabel = document.getElementById("evolutionLabel");
+const introScreen = document.getElementById("introScreen");
+const startButton = document.getElementById("startButton");
+const menuToggle = document.getElementById("menuToggle");
+const upgradeMenu = document.getElementById("upgradeMenu");
+const tutorial = document.getElementById("tutorial");
+const endingScreen = document.getElementById("endingScreen");
+const restartButton = document.getElementById("restartButton");
 
 const backgroundColor = "rgba(0, 8, 20, 0.25)";
-const waterParticleCount = 160;
-const dnaOrbCount = 45;
-const enemyCount = 12;
+const waterParticleCount = 180;
+const dnaOrbCount = 50;
+const enemyCount = 10;
 const baseLerpFactor = 0.06;
+
+const evolutionStages = [0, 120, 260, 480, 760, 1100];
 
 const state = {
   width: window.innerWidth,
@@ -18,6 +29,20 @@ const state = {
   frame: 0,
   pointerActive: false,
   lastTime: performance.now(),
+  phase: "intro",
+  menuOpen: false,
+  bossSpawned: false,
+  dnaSpent: 0,
+  evolutionLevel: 1,
+  evolutionFlash: 0,
+  intro: {
+    meteorX: -200,
+    meteorY: 120,
+    meteorSpeed: 5.2,
+    splash: 0,
+    cellRise: 0,
+    cycle: 0,
+  },
 };
 
 const player = {
@@ -60,6 +85,8 @@ const upgradeMeta = {
 const waterParticles = [];
 const dnaOrbs = [];
 const enemies = [];
+const floatingTexts = [];
+const dashTrail = [];
 
 const dnaTypes = [
   {
@@ -89,10 +116,12 @@ const dnaTypes = [
 ];
 
 const enemyTypes = [
-  { shape: "hex", color: "rgba(255, 90, 115, 0.75)" },
-  { shape: "tri", color: "rgba(255, 140, 70, 0.75)" },
-  { shape: "star", color: "rgba(255, 60, 160, 0.75)" },
+  { shape: "hex", color: "rgba(255, 90, 115, 0.78)" },
+  { shape: "tri", color: "rgba(255, 140, 70, 0.78)" },
+  { shape: "star", color: "rgba(255, 60, 160, 0.78)" },
 ];
+
+const movementPatterns = ["spiral", "wave", "float"];
 
 /**
  * Retorna um valor aleatório em um intervalo.
@@ -102,6 +131,17 @@ const enemyTypes = [
  */
 function rand(min, max) {
   return Math.random() * (max - min) + min;
+}
+
+/**
+ * Retorna um valor limitado dentro do intervalo.
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(value, max));
 }
 
 /**
@@ -177,34 +217,66 @@ function pickDnaType() {
 
 /**
  * Gera uma partícula de DNA em posição aleatória.
+ * @param {number} [x]
+ * @param {number} [y]
  */
-function spawnDnaOrb() {
+function spawnDnaOrb(x, y) {
   const type = pickDnaType();
   dnaOrbs.push({
-    x: rand(40, state.width - 40),
-    y: rand(40, state.height - 40),
+    x: x ?? rand(40, state.width - 40),
+    y: y ?? rand(40, state.height - 40),
     radius: rand(type.radius[0], type.radius[1]),
     color: type.color,
     glow: type.glow,
     pulse: rand(0, Math.PI * 2),
     value: type.value,
+    type: type.name,
   });
 }
 
 /**
- * Gera inimigos em posições aleatórias.
+ * Gera um burst de DNA após derrotar inimigos.
+ * @param {number} x
+ * @param {number} y
+ * @param {number} amount
  */
-function spawnEnemy() {
+function spawnDnaBurst(x, y, amount) {
+  for (let i = 0; i < amount; i += 1) {
+    spawnDnaOrb(x + rand(-25, 25), y + rand(-25, 25));
+  }
+}
+
+/**
+ * Retorna uma velocidade base de inimigo baseada no raio.
+ * @param {number} radius
+ * @returns {number}
+ */
+function getEnemySpeed(radius) {
+  return clamp(2.2 - radius * 0.03, 0.45, 1.6);
+}
+
+/**
+ * Gera inimigos em posições aleatórias.
+ * @param {boolean} [isBoss]
+ */
+function spawnEnemy(isBoss = false) {
   const type = enemyTypes[Math.floor(rand(0, enemyTypes.length))];
-  const radius = rand(18, 40);
+  const baseRadius = isBoss ? rand(70, 90) : rand(18, 36 + state.evolutionLevel * 5);
+  const pattern = isBoss ? "boss" : movementPatterns[Math.floor(rand(0, movementPatterns.length))];
+  const speed = isBoss ? 0.6 : getEnemySpeed(baseRadius);
   enemies.push({
-    x: rand(60, state.width - 60),
-    y: rand(60, state.height - 60),
-    radius,
-    color: type.color,
-    shape: type.shape,
+    x: rand(80, state.width - 80),
+    y: rand(80, state.height - 80),
+    radius: baseRadius,
+    color: isBoss ? "rgba(160, 80, 255, 0.85)" : type.color,
+    shape: isBoss ? "star" : type.shape,
     angle: rand(0, Math.PI * 2),
-    speed: rand(0.4, 1.1),
+    speed,
+    baseSpeed: speed,
+    moveType: pattern,
+    waveSeed: rand(0, Math.PI * 2),
+    damage: baseRadius * 0.55,
+    boss: isBoss,
   });
 }
 
@@ -220,6 +292,40 @@ function updatePlayer(now) {
   player.x += (player.targetX - player.x) * baseLerpFactor * speedFactor;
   player.y += (player.targetY - player.y) * baseLerpFactor * speedFactor;
   player.radius = Math.min(player.radius, player.maxRadius);
+
+  if (dashActive) {
+    dashTrail.push({
+      x: player.x,
+      y: player.y,
+      radius: player.radius * 1.2,
+      life: 1,
+    });
+  }
+}
+
+/**
+ * Atualiza o rastro do dash.
+ */
+function updateDashTrail() {
+  dashTrail.forEach((trail, index) => {
+    trail.life -= 0.05;
+    trail.radius += 0.4;
+    if (trail.life <= 0) {
+      dashTrail.splice(index, 1);
+    }
+  });
+}
+
+/**
+ * Desenha o rastro do dash.
+ */
+function drawDashTrail() {
+  dashTrail.forEach((trail) => {
+    ctx.beginPath();
+    ctx.arc(trail.x, trail.y, trail.radius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(80, 250, 255, ${trail.life * 0.25})`;
+    ctx.fill();
+  });
 }
 
 /**
@@ -259,12 +365,12 @@ function drawPlayer() {
 
   if (player.spikes > 0) {
     const spikes = 10 + player.spikes * 2;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
     ctx.lineWidth = 1.5;
     for (let i = 0; i < spikes; i += 1) {
       const angle = (Math.PI * 2 * i) / spikes;
       const inner = outerRadius * 0.9;
-      const outer = outerRadius * (1 + player.spikes * 0.03);
+      const outer = outerRadius * (1 + player.spikes * 0.05);
       ctx.beginPath();
       ctx.moveTo(player.x + Math.cos(angle) * inner, player.y + Math.sin(angle) * inner);
       ctx.lineTo(player.x + Math.cos(angle) * outer, player.y + Math.sin(angle) * outer);
@@ -285,7 +391,9 @@ function updateDnaOrbs() {
       player.dna += orb.value;
       player.radius += 0.4;
       spawnDnaOrb();
+      addFloatingText(`+${orb.value}`, orb.color, player.x, player.y - 12);
       updateHud();
+      updateUpgradePanel();
     }
   });
 }
@@ -339,15 +447,31 @@ function drawEnemy(enemy) {
 
 /**
  * Atualiza inimigos, movimento e colisões.
+ * @param {number} now
  */
-function updateEnemies() {
+function updateEnemies(now) {
   enemies.forEach((enemy, index) => {
-    enemy.angle += 0.01;
-    enemy.x += Math.cos(enemy.angle) * enemy.speed;
-    enemy.y += Math.sin(enemy.angle * 1.2) * enemy.speed;
+    if (enemy.moveType === "spiral") {
+      enemy.angle += 0.02;
+      enemy.x += Math.cos(enemy.angle) * enemy.speed;
+      enemy.y += Math.sin(enemy.angle * 1.2) * enemy.speed;
+    } else if (enemy.moveType === "wave") {
+      enemy.x += Math.cos(state.frame * 0.02 + enemy.waveSeed) * enemy.speed;
+      enemy.y += Math.sin(state.frame * 0.018 + enemy.waveSeed) * enemy.speed * 1.1;
+      enemy.angle += 0.01;
+    } else if (enemy.moveType === "boss") {
+      const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+      enemy.x += Math.cos(angle) * enemy.speed;
+      enemy.y += Math.sin(angle) * enemy.speed;
+      enemy.angle += 0.01;
+    } else {
+      enemy.angle += 0.01;
+      enemy.x += Math.cos(enemy.angle) * enemy.speed;
+      enemy.y += Math.sin(enemy.angle * 0.8) * enemy.speed;
+    }
 
     if (enemy.x < 40 || enemy.x > state.width - 40) {
-      enemy.angle = Math.PI - enemy.angle;
+      enemy.speed *= -1;
     }
     if (enemy.y < 40 || enemy.y > state.height - 40) {
       enemy.angle = -enemy.angle;
@@ -357,18 +481,79 @@ function updateEnemies() {
     if (dist < player.radius + enemy.radius * 0.9) {
       const playerPower = player.radius + player.spikes * 4;
       const enemyPower = enemy.radius * 1.1;
-      if (playerPower >= enemyPower) {
-        player.dna += Math.round(enemy.radius * 0.8);
+      const dashBonus = player.dash.active ? 1.2 : 1;
+      if (playerPower * dashBonus >= enemyPower) {
+        const reward = Math.round(enemy.radius * 1.2);
+        player.dna += reward;
         player.radius = Math.min(player.radius + 1.2, player.maxRadius);
+        spawnDnaBurst(enemy.x, enemy.y, Math.ceil(enemy.radius / 12));
+        addFloatingText(`+${reward}`, "rgba(120, 255, 200, 0.9)", enemy.x, enemy.y);
         enemies.splice(index, 1);
-        spawnEnemy();
+        if (!enemy.boss) {
+          spawnEnemy();
+        }
+        updateHud();
+        updateUpgradePanel();
       } else {
-        player.hp = Math.max(player.hp - enemy.radius * 0.6, 0);
-        enemy.x = rand(60, state.width - 60);
-        enemy.y = rand(60, state.height - 60);
+        player.hp = Math.max(player.hp - enemy.damage, 0);
+        enemy.x = rand(80, state.width - 80);
+        enemy.y = rand(80, state.height - 80);
+        addFloatingText("-HP", "rgba(255, 90, 120, 0.9)", player.x, player.y - 18);
+        updateHud();
       }
-      updateHud();
     }
+  });
+
+  if (!state.bossSpawned && state.evolutionLevel >= 4) {
+    spawnEnemy(true);
+    state.bossSpawned = true;
+    addFloatingText("Um predador surge...", "rgba(200, 160, 255, 0.9)", state.width / 2, 80);
+  }
+
+  if (state.bossSpawned && enemies.every((enemy) => !enemy.boss)) {
+    state.bossSpawned = false;
+  }
+}
+
+/**
+ * Cria textos flutuantes para feedback de DNA ou dano.
+ * @param {string} text
+ * @param {string} color
+ * @param {number} x
+ * @param {number} y
+ */
+function addFloatingText(text, color, x, y) {
+  floatingTexts.push({
+    text,
+    color,
+    x,
+    y,
+    alpha: 1,
+    life: 1,
+  });
+}
+
+/**
+ * Atualiza os textos flutuantes.
+ */
+function updateFloatingTexts() {
+  floatingTexts.forEach((text, index) => {
+    text.y -= 0.6;
+    text.alpha -= 0.015;
+    if (text.alpha <= 0) {
+      floatingTexts.splice(index, 1);
+    }
+  });
+}
+
+/**
+ * Desenha textos flutuantes.
+ */
+function drawFloatingTexts() {
+  floatingTexts.forEach((text) => {
+    ctx.font = "bold 14px 'Segoe UI', sans-serif";
+    ctx.fillStyle = text.color.replace("0.9", text.alpha.toFixed(2));
+    ctx.fillText(text.text, text.x, text.y);
   });
 }
 
@@ -391,6 +576,35 @@ function updateDashHud(now) {
   const progress = Math.min(elapsed / player.dash.cooldown, 1) * 100;
   dashBar.style.width = `${progress}%`;
   dashLabel.textContent = ready ? "Pronto" : "Recarregando";
+}
+
+/**
+ * Atualiza a barra de evolução.
+ */
+function updateEvolutionHud() {
+  const currentTarget = evolutionStages[state.evolutionLevel - 1];
+  const nextTarget = evolutionStages[state.evolutionLevel] ?? evolutionStages[evolutionStages.length - 1];
+  const range = Math.max(nextTarget - currentTarget, 1);
+  const progress = clamp((state.dnaSpent - currentTarget) / range, 0, 1);
+  evolutionBar.style.width = `${progress * 100}%`;
+  evolutionLabel.textContent = `Fase ${state.evolutionLevel}`;
+}
+
+/**
+ * Avança para uma nova etapa de evolução.
+ */
+function levelUpEvolution() {
+  state.evolutionLevel += 1;
+  state.evolutionFlash = 60;
+  player.colorCore = `rgba(${40 + state.evolutionLevel * 30}, 255, 200, 0.65)`;
+  player.colorGlow = `rgba(0, 190, ${200 + state.evolutionLevel * 8}, 0.3)`;
+  addFloatingText("Nova evolução!", "rgba(150, 255, 230, 0.95)", state.width / 2 - 60, 120);
+  updateEvolutionHud();
+
+  if (state.evolutionLevel >= evolutionStages.length - 1) {
+    state.phase = "ending";
+    endingScreen.classList.add("ending--visible");
+  }
 }
 
 /**
@@ -426,10 +640,11 @@ function updateUpgradePanel() {
  */
 function applyUpgrade(key) {
   const cost = getUpgradeCost(key);
-  if (player.dna < cost) {
+  if (player.dna < cost || state.phase !== "playing") {
     return;
   }
   player.dna -= cost;
+  state.dnaSpent += cost;
   upgrades[key].level += 1;
 
   if (key === "vida") {
@@ -452,8 +667,79 @@ function applyUpgrade(key) {
     player.dash.speedMultiplier = Math.min(player.dash.speedMultiplier + 0.2, 3.6);
   }
 
+  if (state.evolutionLevel < evolutionStages.length - 1) {
+    const nextTarget = evolutionStages[state.evolutionLevel];
+    if (state.dnaSpent >= nextTarget) {
+      levelUpEvolution();
+    }
+  }
+
   updateHud();
   updateUpgradePanel();
+  updateEvolutionHud();
+}
+
+/**
+ * Atualiza o estado da introdução cinematográfica.
+ */
+function updateIntroScene() {
+  const intro = state.intro;
+  intro.meteorX += intro.meteorSpeed;
+  intro.meteorY += intro.meteorSpeed * 0.55;
+
+  if (intro.meteorX > state.width * 0.7) {
+    intro.splash = Math.min(intro.splash + 0.02, 1);
+    intro.cellRise = Math.min(intro.cellRise + 0.012, 1);
+  }
+
+  if (intro.meteorX > state.width + 200) {
+    intro.meteorX = -200;
+    intro.meteorY = 120;
+    intro.splash = 0;
+    intro.cellRise = 0;
+  }
+}
+
+/**
+ * Desenha a cena de introdução inspirada em Spore.
+ */
+function drawIntroScene() {
+  ctx.fillStyle = "rgba(0, 4, 12, 0.85)";
+  ctx.fillRect(0, 0, state.width, state.height);
+
+  ctx.beginPath();
+  ctx.arc(state.width * 0.5, state.height * 0.8, state.width, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(0, 60, 100, 0.35)";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(state.intro.meteorX, state.intro.meteorY);
+  ctx.lineTo(state.intro.meteorX - 120, state.intro.meteorY - 80);
+  ctx.strokeStyle = "rgba(255, 140, 80, 0.7)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(state.intro.meteorX, state.intro.meteorY, 12, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 200, 120, 0.9)";
+  ctx.fill();
+
+  if (state.intro.splash > 0) {
+    const splashRadius = 40 + state.intro.splash * 80;
+    ctx.beginPath();
+    ctx.arc(state.width * 0.7, state.height * 0.7, splashRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(0, 200, 255, ${0.4 - state.intro.splash * 0.3})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  if (state.intro.cellRise > 0) {
+    const cellY = state.height * 0.72 - state.intro.cellRise * 60;
+    ctx.beginPath();
+    ctx.arc(state.width * 0.7, cellY, 18 + state.intro.cellRise * 8, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 240, 210, 0.6)";
+    ctx.fill();
+  }
 }
 
 /**
@@ -464,15 +750,40 @@ function loop(now) {
   ctx.fillStyle = backgroundColor;
   ctx.fillRect(0, 0, state.width, state.height);
 
+  if (state.phase === "intro") {
+    updateIntroScene();
+    drawIntroScene();
+    updateWaterParticles();
+    drawWaterParticles();
+    window.requestAnimationFrame(loop);
+    return;
+  }
+
   updateWaterParticles();
   drawWaterParticles();
-  updatePlayer(now);
-  updateDnaOrbs();
-  updateEnemies();
+
+  if (state.evolutionFlash > 0) {
+    ctx.fillStyle = `rgba(80, 255, 230, ${state.evolutionFlash / 200})`;
+    ctx.fillRect(0, 0, state.width, state.height);
+    state.evolutionFlash -= 1;
+  }
+
+  if (state.phase === "playing") {
+    updatePlayer(now);
+    updateDashTrail();
+
+    if (!state.menuOpen) {
+      updateDnaOrbs();
+      updateEnemies(now);
+    }
+  }
+
+  drawDashTrail();
   drawDnaOrbs();
   enemies.forEach(drawEnemy);
   drawPlayer();
-
+  drawFloatingTexts();
+  updateFloatingTexts();
   updateDashHud(now);
 
   state.frame += 1;
@@ -484,6 +795,9 @@ function loop(now) {
  * @param {PointerEvent} event
  */
 function handlePointerMove(event) {
+  if (state.phase !== "playing") {
+    return;
+  }
   player.targetX = event.clientX;
   player.targetY = event.clientY;
   state.pointerActive = true;
@@ -506,7 +820,12 @@ function handlePointerLeave() {
  * @param {KeyboardEvent} event
  */
 function handleKeyDown(event) {
-  if (event.code !== "Space") {
+  if (event.code === "KeyM") {
+    toggleMenu();
+    return;
+  }
+
+  if (event.code !== "Space" || state.phase !== "playing" || state.menuOpen) {
     return;
   }
   const now = performance.now();
@@ -514,6 +833,83 @@ function handleKeyDown(event) {
     player.dash.lastUse = now;
     player.dash.active = true;
   }
+}
+
+/**
+ * Alterna a abertura do menu de upgrades.
+ */
+function toggleMenu() {
+  if (state.phase !== "playing") {
+    return;
+  }
+  state.menuOpen = !state.menuOpen;
+  upgradeMenu.classList.toggle("menu--open", state.menuOpen);
+}
+
+/**
+ * Exibe o tutorial inicial.
+ */
+function showTutorial() {
+  tutorial.classList.add("tutorial--visible");
+  setTimeout(() => {
+    tutorial.classList.remove("tutorial--visible");
+  }, 5200);
+}
+
+/**
+ * Prepara o jogo para iniciar.
+ */
+function startGame() {
+  state.phase = "playing";
+  introScreen.classList.remove("intro--visible");
+  showTutorial();
+  state.dnaSpent = 0;
+  state.evolutionLevel = 1;
+  state.bossSpawned = false;
+  updateEvolutionHud();
+}
+
+/**
+ * Reinicia o ciclo evolutivo.
+ */
+function resetGame() {
+  Object.keys(upgrades).forEach((key) => {
+    upgrades[key].level = 0;
+  });
+
+  player.x = state.width / 2;
+  player.y = state.height / 2;
+  player.radius = 22;
+  player.maxRadius = 90;
+  player.dna = 0;
+  player.hp = 100;
+  player.maxHp = 100;
+  player.spikes = 0;
+  player.dash.cooldown = 1800;
+  player.dash.duration = 240;
+  player.dash.speedMultiplier = 2.4;
+  player.colorCore = "rgba(0, 255, 200, 0.6)";
+  player.colorGlow = "rgba(0, 200, 255, 0.3)";
+
+  dnaOrbs.length = 0;
+  enemies.length = 0;
+  floatingTexts.length = 0;
+  dashTrail.length = 0;
+
+  for (let i = 0; i < dnaOrbCount; i += 1) {
+    spawnDnaOrb();
+  }
+  for (let i = 0; i < enemyCount; i += 1) {
+    spawnEnemy();
+  }
+
+  updateHud();
+  updateUpgradePanel();
+  updateEvolutionHud();
+
+  endingScreen.classList.remove("ending--visible");
+  state.phase = "intro";
+  introScreen.classList.add("intro--visible");
 }
 
 window.addEventListener("resize", resizeCanvas);
@@ -526,6 +922,14 @@ Array.from(document.querySelectorAll(".menu__card")).forEach((button) => {
   button.addEventListener("click", () => applyUpgrade(button.dataset.upgrade));
 });
 
+menuToggle.addEventListener("click", toggleMenu);
+startButton.addEventListener("click", () => {
+  startGame();
+});
+restartButton.addEventListener("click", () => {
+  resetGame();
+});
+
 resizeCanvas();
 initWaterParticles();
 for (let i = 0; i < dnaOrbCount; i += 1) {
@@ -536,4 +940,6 @@ for (let i = 0; i < enemyCount; i += 1) {
 }
 updateHud();
 updateUpgradePanel();
+updateEvolutionHud();
+introScreen.classList.add("intro--visible");
 window.requestAnimationFrame(loop);
