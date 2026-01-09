@@ -12,6 +12,18 @@
 <body>
   <canvas id="gameCanvas"></canvas>
 
+  <div class="intro" id="introScreen">
+    <div class="intro__stars"></div>
+    <div class="intro__content">
+      <p class="intro__subtitle">Uma origem microscópica</p>
+      <h1>Spore Evolution</h1>
+      <p class="intro__text">
+        Um fragmento cósmico desperta um novo ciclo de vida nas profundezas.
+      </p>
+      <button class="intro__button" id="startButton">Iniciar Evolução</button>
+    </div>
+  </div>
+
   <div class="hud">
     <div class="hud__panel">
       <div class="hud__title">Célula Primária</div>
@@ -33,41 +45,71 @@
         </div>
         <small id="dashLabel">Pronto</small>
       </div>
+      <div class="hud__row">
+        <span>Evolução</span>
+        <div class="hud__bar hud__bar--evo">
+          <div id="evolutionBar" class="hud__bar-fill"></div>
+        </div>
+        <small id="evolutionLabel">Fase 1</small>
+      </div>
+    </div>
+    <button class="hud__toggle" id="menuToggle" aria-label="Abrir laboratório genético">
+      Laboratório (M)
+    </button>
+  </div>
+
+  <div class="tutorial" id="tutorial">
+    Colete DNA para evoluir. Use <strong>Espaço</strong> para dar dash.
+    Fuja de inimigos maiores; eles rendem mais DNA quando derrotados.
+  </div>
+
+  <div class="ending" id="endingScreen">
+    <div class="ending__content">
+      <h2>Nova Era</h2>
+      <p>
+        Sua célula desenvolveu um núcleo brilhante e sente o chamado da superfície.
+        Em breve, uma nova fase de criatura começará.
+      </p>
+      <button class="ending__button" id="restartButton">Reiniciar ciclo</button>
     </div>
   </div>
 
-  <aside class="menu">
+  <aside class="menu" id="upgradeMenu">
     <div class="menu__header">
       <h1>Laboratório Genético</h1>
       <p>Gaste DNA para evoluir sua célula e sobreviver no bioma.</p>
     </div>
     <div class="menu__grid">
       <button class="menu__card" data-upgrade="vida">
+        <span class="menu__icon">❤</span>
         <span class="menu__title">Vida</span>
-        <span class="menu__desc">Aumenta o HP máximo.</span>
+        <span class="menu__desc">Aumenta o HP máximo e cura.</span>
         <span class="menu__meta" id="vidaMeta">Nível 0 · Custo 30 DNA</span>
       </button>
       <button class="menu__card" data-upgrade="tamanho">
+        <span class="menu__icon">◎</span>
         <span class="menu__title">Tamanho</span>
-        <span class="menu__desc">Aumenta o raio e resistência.</span>
+        <span class="menu__desc">Raio maior e resistência extra.</span>
         <span class="menu__meta" id="tamanhoMeta">Nível 0 · Custo 40 DNA</span>
       </button>
       <button class="menu__card" data-upgrade="espinhos">
+        <span class="menu__icon">✦</span>
         <span class="menu__title">Espinhos / Esporões</span>
-        <span class="menu__desc">Eleva o dano em colisões.</span>
+        <span class="menu__desc">Ataque rammando e defesa.</span>
         <span class="menu__meta" id="espinhosMeta">Nível 0 · Custo 45 DNA</span>
       </button>
       <button class="menu__card" data-upgrade="dash">
+        <span class="menu__icon">➠</span>
         <span class="menu__title">Dash</span>
-        <span class="menu__desc">Dash mais rápido e com recarga menor.</span>
+        <span class="menu__desc">Dash mais longo e recarga menor.</span>
         <span class="menu__meta" id="dashMeta">Nível 0 · Custo 50 DNA</span>
       </button>
     </div>
     <div class="menu__footer">
       <div class="menu__legend">
-        <span class="legend legend--common">DNA comum</span>
-        <span class="legend legend--rare">DNA raro</span>
-        <span class="legend legend--epic">DNA épico</span>
+        <span class="legend legend--common">DNA comum · 10</span>
+        <span class="legend legend--rare">DNA raro · 25</span>
+        <span class="legend legend--epic">DNA épico · 60</span>
       </div>
       <div class="menu__tips">
         <p>Controle: mova o cursor para nadar. Pressione <strong>Espaço</strong> para dash.</p>
