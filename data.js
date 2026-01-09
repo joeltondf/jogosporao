@@ -1,0 +1,142 @@
+export const CONFIG = {
+  backgroundColor: "rgba(0, 8, 20, 0.25)",
+  waterParticleCount: 180,
+  dnaOrbCount: 70,
+  enemyCount: 14,
+  baseLerpFactor: 0.06,
+  worldWidth: 5000,
+  worldHeight: 3000,
+  miniMapScale: 0.18,
+};
+
+export const evolutionStages = [0, 120, 260, 480, 760, 1100];
+
+export const dnaTypes = [
+  {
+    name: "comum",
+    value: 10,
+    radius: [4, 7],
+    color: "rgba(45, 140, 255, 0.9)",
+    glow: "rgba(45, 140, 255, 0.35)",
+    chance: 0.75,
+  },
+  {
+    name: "raro",
+    value: 25,
+    radius: [6, 9],
+    color: "rgba(255, 214, 80, 0.95)",
+    glow: "rgba(255, 214, 80, 0.4)",
+    chance: 0.2,
+  },
+  {
+    name: "epico",
+    value: 60,
+    radius: [7, 11],
+    color: "rgba(255, 99, 255, 0.95)",
+    glow: "rgba(255, 99, 255, 0.45)",
+    chance: 0.05,
+  },
+];
+
+export const enemyTypes = [
+  {
+    id: "errante",
+    name: "Errante",
+    baseHp: 60,
+    speedRange: [0.6, 1.1],
+    radiusRange: [18, 30],
+    color: "rgba(255, 90, 115, 0.78)",
+    behavior: "circular",
+    powerMultiplier: 1.05,
+    dnaReward: [18, 30],
+  },
+  {
+    id: "lamina",
+    name: "Lâmina",
+    baseHp: 80,
+    speedRange: [0.8, 1.35],
+    radiusRange: [22, 36],
+    color: "rgba(255, 140, 70, 0.78)",
+    behavior: "zigzag",
+    powerMultiplier: 1.12,
+    dnaReward: [24, 38],
+  },
+  {
+    id: "predador",
+    name: "Predador",
+    baseHp: 110,
+    speedRange: [0.7, 1.15],
+    radiusRange: [28, 44],
+    color: "rgba(255, 60, 160, 0.78)",
+    behavior: "stalker",
+    powerMultiplier: 1.2,
+    dnaReward: [32, 52],
+  },
+];
+
+export const characters = [
+  {
+    id: "primaria",
+    name: "Primária",
+    coreColor: "rgba(0, 255, 200, 0.6)",
+    glowColor: "rgba(0, 200, 255, 0.3)",
+    cost: 0,
+    description: "Equilibrada e fácil de dominar.",
+    bonuses: {
+      maxHp: 0,
+      maxRadius: 0,
+      spikeSlots: 0,
+      regen: 0,
+      speed: 1,
+      power: 1,
+    },
+  },
+  {
+    id: "espinhosa",
+    name: "Espinhosa",
+    coreColor: "rgba(255, 120, 200, 0.65)",
+    glowColor: "rgba(255, 160, 220, 0.35)",
+    cost: 140,
+    description: "Mais slots de espinhos para agressão direta.",
+    bonuses: {
+      maxHp: 10,
+      maxRadius: 4,
+      spikeSlots: 2,
+      regen: 0,
+      speed: 1,
+      power: 1.08,
+    },
+  },
+  {
+    id: "lumina",
+    name: "Lumina",
+    coreColor: "rgba(120, 210, 255, 0.7)",
+    glowColor: "rgba(120, 255, 240, 0.4)",
+    cost: 180,
+    description: "Regenera lentamente e resiste mais tempo.",
+    bonuses: {
+      maxHp: 25,
+      maxRadius: 0,
+      spikeSlots: 1,
+      regen: 0.35,
+      speed: 1,
+      power: 1,
+    },
+  },
+  {
+    id: "titanica",
+    name: "Titânica",
+    coreColor: "rgba(120, 255, 170, 0.7)",
+    glowColor: "rgba(120, 255, 200, 0.35)",
+    cost: 220,
+    description: "Núcleo mais denso com alcance e robustez maiores.",
+    bonuses: {
+      maxHp: 35,
+      maxRadius: 12,
+      spikeSlots: 0,
+      regen: 0.1,
+      speed: 0.95,
+      power: 1.12,
+    },
+  },
+];
