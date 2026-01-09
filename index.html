@@ -26,41 +26,26 @@
 
   <div class="hud">
     <div class="hud__panel">
-      <div class="hud__title">Célula Primária</div>
-      <div class="hud__row">
-        <span>DNA</span>
-        <strong id="dnaScore">0</strong>
+      <div class="hud__row hud__row--dna">
+        <span class="hud__label">DNA</span>
+        <strong id="dnaScore" class="hud__value">0</strong>
       </div>
-      <div class="hud__row">
-        <span>Vida</span>
+      <div class="hud__row hud__row--bar">
+        <span class="hud__label">Vida</span>
         <div class="hud__bar">
           <div id="hpBar" class="hud__bar-fill"></div>
         </div>
-        <small id="hpLabel">0 / 0</small>
       </div>
-      <div class="hud__row">
-        <span>Dash</span>
+      <div class="hud__row hud__row--bar">
+        <span class="hud__label">Dash</span>
         <div class="hud__bar hud__bar--dash">
           <div id="dashBar" class="hud__bar-fill"></div>
         </div>
-        <small id="dashLabel">Pronto</small>
-      </div>
-      <div class="hud__row">
-        <span>Evolução</span>
-        <div class="hud__bar hud__bar--evo">
-          <div id="evolutionBar" class="hud__bar-fill"></div>
-        </div>
-        <small id="evolutionLabel">Fase 1</small>
       </div>
     </div>
     <button class="hud__toggle" id="menuToggle" aria-label="Abrir laboratório genético">
       Laboratório (M)
     </button>
-  </div>
-
-  <div class="tutorial" id="tutorial">
-    Colete DNA para evoluir. Use <strong>Espaço</strong> para dar dash.
-    Fuja de inimigos maiores; eles rendem mais DNA quando derrotados.
   </div>
 
   <div class="ending" id="endingScreen">
@@ -79,31 +64,38 @@
       <h1>Laboratório Genético</h1>
       <p>Gaste DNA para evoluir sua célula e sobreviver no bioma.</p>
     </div>
-    <div class="menu__grid">
-      <button class="menu__card" data-upgrade="vida">
-        <span class="menu__icon">❤</span>
-        <span class="menu__title">Vida</span>
-        <span class="menu__desc">Aumenta o HP máximo e cura.</span>
-        <span class="menu__meta" id="vidaMeta">Nível 0 · Custo 30 DNA</span>
-      </button>
-      <button class="menu__card" data-upgrade="tamanho">
-        <span class="menu__icon">◎</span>
-        <span class="menu__title">Tamanho</span>
-        <span class="menu__desc">Raio maior e resistência extra.</span>
-        <span class="menu__meta" id="tamanhoMeta">Nível 0 · Custo 40 DNA</span>
-      </button>
-      <button class="menu__card" data-upgrade="espinhos">
-        <span class="menu__icon">✦</span>
-        <span class="menu__title">Espinhos / Esporões</span>
-        <span class="menu__desc">Ataque rammando e defesa.</span>
-        <span class="menu__meta" id="espinhosMeta">Nível 0 · Custo 45 DNA</span>
-      </button>
-      <button class="menu__card" data-upgrade="dash">
-        <span class="menu__icon">➠</span>
-        <span class="menu__title">Dash</span>
-        <span class="menu__desc">Dash mais longo e recarga menor.</span>
-        <span class="menu__meta" id="dashMeta">Nível 0 · Custo 50 DNA</span>
-      </button>
+    <div class="menu__section">
+      <h2 class="menu__section-title">Evoluções</h2>
+      <div class="menu__grid">
+        <button class="menu__card" data-upgrade="vida">
+          <span class="menu__icon">❤</span>
+          <span class="menu__title">Vida</span>
+          <span class="menu__desc">Aumenta o HP máximo e cura.</span>
+          <span class="menu__meta" id="vidaMeta">Nível 0 · Custo 30 DNA</span>
+        </button>
+        <button class="menu__card" data-upgrade="tamanho">
+          <span class="menu__icon">◎</span>
+          <span class="menu__title">Tamanho</span>
+          <span class="menu__desc">Raio maior e resistência extra.</span>
+          <span class="menu__meta" id="tamanhoMeta">Nível 0 · Custo 40 DNA</span>
+        </button>
+        <button class="menu__card" data-upgrade="espinhos">
+          <span class="menu__icon">✦</span>
+          <span class="menu__title">Espinhos / Esporões</span>
+          <span class="menu__desc">Ataque rammando e defesa.</span>
+          <span class="menu__meta" id="espinhosMeta">Nível 0 · Custo 45 DNA</span>
+        </button>
+        <button class="menu__card" data-upgrade="dash">
+          <span class="menu__icon">➠</span>
+          <span class="menu__title">Dash</span>
+          <span class="menu__desc">Dash mais longo e recarga menor.</span>
+          <span class="menu__meta" id="dashMeta">Nível 0 · Custo 50 DNA</span>
+        </button>
+      </div>
+    </div>
+    <div class="menu__section">
+      <h2 class="menu__section-title">Modelos celulares</h2>
+      <div class="menu__grid menu__grid--characters" id="characterGrid"></div>
     </div>
     <div class="menu__footer">
       <div class="menu__legend">
@@ -114,10 +106,11 @@
       <div class="menu__tips">
         <p>Controle: mova o cursor para nadar. Pressione <strong>Espaço</strong> para dash.</p>
         <p>Evite inimigos maiores. Formatos maiores indicam maior força.</p>
+        <p>O tamanho só cresce com upgrades de laboratório.</p>
       </div>
     </div>
   </aside>
 
-  <script src="game.js"></script>
+  <script type="module" src="game.js"></script>
 </body>
 </html>
